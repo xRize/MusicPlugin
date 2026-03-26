@@ -1,0 +1,16 @@
+{
+  "version": 2,
+  "dgSpecHash": "ukn7ePT6gKQ=",
+  "success": true,
+  "projectFilePath": "C:\\Users\\Andrei\\RiderProjects\\MusicPlugin\\helper\\MediaCompanion.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\Andrei\\.nuget\\packages\\fleck\\1.2.0\\fleck.1.2.0.nupkg.sha512",
+    "C:\\Users\\Andrei\\.nuget\\packages\\microsoft.net.illink.tasks\\9.0.3\\microsoft.net.illink.tasks.9.0.3.nupkg.sha512",
+    "C:\\Users\\Andrei\\.nuget\\packages\\system.text.json\\9.0.2\\system.text.json.9.0.2.nupkg.sha512",
+    "C:\\Users\\Andrei\\.nuget\\packages\\microsoft.netcore.app.runtime.win-x64\\9.0.3\\microsoft.netcore.app.runtime.win-x64.9.0.3.nupkg.sha512",
+    "C:\\Users\\Andrei\\.nuget\\packages\\microsoft.windowsdesktop.app.runtime.win-x64\\9.0.3\\microsoft.windowsdesktop.app.runtime.win-x64.9.0.3.nupkg.sha512",
+    "C:\\Users\\Andrei\\.nuget\\packages\\microsoft.aspnetcore.app.runtime.win-x64\\9.0.3\\microsoft.aspnetcore.app.runtime.win-x64.9.0.3.nupkg.sha512",
+    "C:\\Users\\Andrei\\.nuget\\packages\\microsoft.windows.sdk.net.ref\\10.0.19041.57\\microsoft.windows.sdk.net.ref.10.0.19041.57.nupkg.sha512"
+  ],
+  "logs": []
+}

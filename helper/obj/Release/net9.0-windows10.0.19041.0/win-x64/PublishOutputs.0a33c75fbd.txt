@@ -1,0 +1,2 @@
+C:\Users\Andrei\RiderProjects\MusicPlugin\dist-release\companion\MediaCompanion.pdb
+C:\Users\Andrei\RiderProjects\MusicPlugin\dist-release\companion\MediaCompanion.exe
