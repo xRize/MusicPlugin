@@ -36,7 +36,8 @@ Built with **TypeScript** and **C#**, this plugin seamlessly integrates your Win
 
 ### 📸 Preview
 
-*Stay tuned for screenshots!*
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/7f1dae67-6e42-4fb5-ac20-32cbc0166a21" />
+
 
 ---
 
