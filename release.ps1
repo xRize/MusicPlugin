@@ -11,7 +11,7 @@ cd ..
 # Build Plugin
 Write-Host "Building Plugin..."
 cd plugin-advanced-ts-vite
-npm run build
+pnpm.cmd build
 cd ..
 
 # Create release folder

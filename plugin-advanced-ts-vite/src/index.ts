@@ -9,6 +9,7 @@ export function init(context: any) {
 
 export function load() {
     if (loaded) return;
+
     loaded = true;
     console.log('[MediaPlugin] load() called')
     new MediaWidget();
@@ -19,7 +20,13 @@ export function load() {
 // or as a fallback. Many Pengu templates actually just export these,
 // but let's be safe.
 try {
-    load();
+    if (document.readyState === 'loading') {
+        window.addEventListener('DOMContentLoaded', () => {
+            load();
+        }, { once: true });
+    } else {
+        load();
+    }
 } catch (e) {
     console.error('[MediaPlugin] Auto-load failed', e);
 }

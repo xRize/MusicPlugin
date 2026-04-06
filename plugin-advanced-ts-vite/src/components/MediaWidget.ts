@@ -89,35 +89,30 @@ export class MediaWidget {
         this.initDragAndDrop();
 
         const appendWidget = () => {
-            // Re-check for existing to avoid race conditions during late appends
-            const allWidgets = document.querySelectorAll('#pengu-media-widget');
-            if (allWidgets.length > 1) {
-                allWidgets.forEach((w, i) => {
-                    if (w !== this.container) {
-                        console.log('[MediaPlugin] Cleaning up extra widget instance');
-                        w.remove();
-                    }
-                });
+            let viewport = document.getElementById('rcp-fe-viewport-root');
+            if (viewport) {
+                viewport.appendChild(this.container!);
+                console.log('[MediaPlugin] UI Appended to viewport-root');
+                return;
             }
 
-            const viewport = document.getElementById('rcp-fe-viewport-root');
-            if (viewport) {
-                if (this.container!.parentElement !== viewport) {
+            if (!document.body) {
+                window.addEventListener('DOMContentLoaded', () => {
+                    appendWidget();
+                }, { once: true });
+                return;
+            }
+
+            const observer = new MutationObserver((_, obs) => {
+                viewport = document.getElementById('rcp-fe-viewport-root');
+                if (viewport) {
                     viewport.appendChild(this.container!);
                     console.log('[MediaPlugin] UI Appended to viewport-root');
+                    obs.disconnect();
                 }
-            } else if (document.body) {
-                if (this.container!.parentElement !== document.body) {
-                    document.body.appendChild(this.container!);
-                    console.log('[MediaPlugin] UI Appended to body');
-                }
-            }
-            
-            // Keep checking for viewport-root even if appended to body,
-            // as viewport-root is the better place for it in League client.
-            if (!viewport || this.container!.parentElement !== viewport) {
-                setTimeout(appendWidget, 500);
-            }
+            });
+
+            observer.observe(document.body, { childList: true, subtree: true });
         };
 
         appendWidget();
@@ -174,6 +169,13 @@ export class MediaWidget {
     }
 
     private update(update: MediaUpdate) {
+        if (this.lastData && 
+            this.lastData.title === update.title && 
+            this.lastData.isPlaying === update.isPlaying &&
+            this.lastData.artwork === update.artwork) {
+            return;
+        }
+
         console.log('[MediaPlugin] Update received:', update.title, update.isPlaying);
         if (!this.container || !this.art || !this.title || !this.artist || !this.playBtn) return;
 
