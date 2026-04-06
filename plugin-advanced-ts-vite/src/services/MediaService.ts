@@ -14,7 +14,6 @@ export class MediaService {
     private socket: WebSocket | null = null;
     private listeners: ((update: MediaUpdate) => void)[] = [];
     private reconnectTimeout: number | null = null;
-    private pollInterval: any = null;
     private isConnecting = false;
 
     private constructor() {
@@ -32,8 +31,9 @@ export class MediaService {
 
     private connect() {
         if (this.isConnecting) return;
+
         this.isConnecting = true;
-        
+
         console.log('[MediaPlugin] Connecting to companion...');
         this.socket = new WebSocket('ws://127.0.0.1:8181');
 
@@ -47,10 +47,6 @@ export class MediaService {
             
             // Request initial state
             this.sendCommand('request-update');
-            
-            // Start polling every second as requested
-            if (this.pollInterval) clearInterval(this.pollInterval);
-            this.pollInterval = setInterval(() => this.sendCommand('request-update'), 1000);
         };
 
         this.socket.onmessage = (event) => {
@@ -67,12 +63,7 @@ export class MediaService {
         this.socket.onclose = () => {
             this.isConnecting = false;
             console.log('[MediaPlugin] Connection closed, reconnecting in 5s...');
-            
-            if (this.pollInterval) {
-                clearInterval(this.pollInterval);
-                this.pollInterval = null;
-            }
-            
+
             this.scheduleReconnect();
             this.tryInitializeCompanion(); // Hands-free initialization attempt
         };
@@ -102,7 +93,9 @@ export class MediaService {
             setTimeout(() => {
                 if (iframe.parentElement) document.body.removeChild(iframe);
             }, 1000);
-        } catch (e) {}
+        } catch (e) {
+            console.error('[MediaPlugin] Failed to trigger custom protocol handler', e);
+        }
 
         // 2. If papi is available, try to use its native spawn capabilities
         const anyWindow = window as any;
@@ -123,6 +116,7 @@ export class MediaService {
 
     private scheduleReconnect() {
         if (this.reconnectTimeout) return;
+
         this.reconnectTimeout = window.setTimeout(() => {
             this.reconnectTimeout = null;
             this.connect();
