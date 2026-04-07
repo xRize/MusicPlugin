@@ -11,14 +11,37 @@ export class MediaWidget {
 
     private isPlaying = false;
     private isDragging = false;
+    private isManuallyClosed = false;
     private startX = 0;
     private startY = 0;
     private startRight = 30;
     private startBottom = 30;
 
+    private updateCallback = (update: MediaUpdate) => this.update(update);
+
     constructor() {
+        // Prevent multiple instances across reloads or double calls
+        const anyWin = window as any;
+        if (anyWin.__MEDIA_WIDGET_INSTANCE__) {
+            console.log('[MediaPlugin] Widget instance already exists, removing old one.');
+            try {
+                // If the old instance exists, we'll try to let it clean up
+                const oldInstance = anyWin.__MEDIA_WIDGET_INSTANCE__;
+                if (typeof oldInstance.destroy === 'function') {
+                    oldInstance.destroy();
+                } else if (oldInstance.container && oldInstance.container.parentElement) {
+                    oldInstance.container.remove();
+                }
+                // Allow new instance to append
+                anyWin.__MEDIA_WIDGET_APPENDED__ = false;
+            } catch (e) {
+                console.error('[MediaPlugin] Failed to cleanup old widget instance', e);
+            }
+        }
+        anyWin.__MEDIA_WIDGET_INSTANCE__ = this;
+
         this.initUI();
-        MediaService.getInstance().subscribe((update) => this.update(update));
+        MediaService.getInstance().subscribe(this.updateCallback);
     }
 
     private initUI() {
@@ -36,9 +59,28 @@ export class MediaWidget {
         // Try to remove it multiple times in case it's being added asynchronously
         removeExisting();
         
+        const closeBtn = document.createElement('button');
+        closeBtn.className = 'close-btn';
+        closeBtn.innerHTML = '&times;';
+        closeBtn.onclick = (e) => {
+            e.stopPropagation();
+            this.isManuallyClosed = true;
+            if (this.container) {
+                this.container.classList.add('hidden');
+                // Use timeout to allow transition before display: none
+                setTimeout(() => {
+                    if (this.isManuallyClosed && this.container) {
+                        this.container.style.display = 'none';
+                    }
+                }, 500);
+            }
+        };
+        closeBtn.onmousedown = (e) => e.stopPropagation();
+
         this.container = document.createElement('div');
         this.container.id = 'pengu-media-widget';
         this.container.className = 'media-widget hidden';
+        this.container.appendChild(closeBtn);
 
         const artContainer = document.createElement('div');
         artContainer.className = 'media-art-container';
@@ -89,9 +131,25 @@ export class MediaWidget {
         this.initDragAndDrop();
 
         const appendWidget = () => {
+            if (this.container?.parentElement) return;
+
+            // Global check for any instance already appended
+            const anyWin = window as any;
+            if (anyWin.__MEDIA_WIDGET_APPENDED__) {
+                console.log('[MediaPlugin] A widget is already appended, skipping');
+                return;
+            }
+
+            if (document.getElementById('pengu-media-widget')) {
+                console.log('[MediaPlugin] Widget element already exists, skipping append');
+                anyWin.__MEDIA_WIDGET_APPENDED__ = true;
+                return;
+            }
+
             let viewport = document.getElementById('rcp-fe-viewport-root');
             if (viewport) {
                 viewport.appendChild(this.container!);
+                anyWin.__MEDIA_WIDGET_APPENDED__ = true;
                 console.log('[MediaPlugin] UI Appended to viewport-root');
                 return;
             }
@@ -104,9 +162,17 @@ export class MediaWidget {
             }
 
             const observer = new MutationObserver((_, obs) => {
+                if (anyWin.__MEDIA_WIDGET_APPENDED__ || document.getElementById('pengu-media-widget')) {
+                    console.log('[MediaPlugin] Widget already exists (observer), skipping append');
+                    anyWin.__MEDIA_WIDGET_APPENDED__ = true;
+                    obs.disconnect();
+                    return;
+                }
+
                 viewport = document.getElementById('rcp-fe-viewport-root');
                 if (viewport) {
                     viewport.appendChild(this.container!);
+                    anyWin.__MEDIA_WIDGET_APPENDED__ = true;
                     console.log('[MediaPlugin] UI Appended to viewport-root');
                     obs.disconnect();
                 }
@@ -128,8 +194,23 @@ export class MediaWidget {
             const dx = this.startX - e.clientX;
             const dy = this.startY - e.clientY;
 
-            this.container.style.right = (this.startRight + dx) + 'px';
-            this.container.style.bottom = (this.startBottom + dy) + 'px';
+            let nextRight = this.startRight + dx;
+            let nextBottom = this.startBottom + dy;
+
+            // Boundary checks
+            const viewportWidth = window.innerWidth;
+            const viewportHeight = window.innerHeight;
+            const widgetWidth = this.container.offsetWidth || 320;
+            const widgetHeight = this.container.offsetHeight || 54;
+            const buttonOffset = 6;
+
+            if (nextRight < buttonOffset) nextRight = buttonOffset;
+            if (nextBottom < 0) nextBottom = 0;
+            if (nextRight > viewportWidth - widgetWidth) nextRight = viewportWidth - widgetWidth;
+            if (nextBottom > viewportHeight - widgetHeight - buttonOffset) nextBottom = viewportHeight - widgetHeight - buttonOffset;
+
+            this.container.style.right = nextRight + 'px';
+            this.container.style.bottom = nextBottom + 'px';
             
             // Avoid transition while dragging for smoothness
             this.container.style.transition = 'none';
@@ -168,12 +249,28 @@ export class MediaWidget {
         this.playBtn.innerHTML = playing ? pauseIcon : playIcon;
     }
 
+    public destroy() {
+        if (this.container && this.container.parentElement) {
+            this.container.remove();
+        }
+        MediaService.getInstance().unsubscribe(this.updateCallback);
+        const anyWin = window as any;
+        if (anyWin.__MEDIA_WIDGET_INSTANCE__ === this) {
+            anyWin.__MEDIA_WIDGET_INSTANCE__ = null;
+        }
+    }
+
     private update(update: MediaUpdate) {
         if (this.lastData && 
             this.lastData.title === update.title && 
             this.lastData.isPlaying === update.isPlaying &&
             this.lastData.artwork === update.artwork) {
             return;
+        }
+
+        // Reset manual close when track changes (only if it's a valid new title)
+        if (update.title && update.title.trim() !== "" && this.lastData?.title !== update.title) {
+            this.isManuallyClosed = false;
         }
 
         console.log('[MediaPlugin] Update received:', update.title, update.isPlaying);
@@ -199,7 +296,16 @@ export class MediaWidget {
                 this.art.style.display = 'none';
             }
 
-            this.container.classList.remove('hidden');
+            if (!this.isManuallyClosed) {
+                this.container.classList.remove('hidden');
+                // Ensure display is restored in case it was set to none
+                this.container.style.display = 'flex';
+            } else {
+                this.container.classList.add('hidden');
+                // Hide from layout if manually closed
+                this.container.style.display = 'none';
+            }
+
             if (this.isPlaying) {
                 this.container.classList.remove('paused');
             } else {
@@ -208,6 +314,9 @@ export class MediaWidget {
         } else {
             // No title, hide it
             this.container.classList.add('hidden');
+            // For "redundancy" and "cannot be closed" issues, 
+            // set display none immediately when there's no track
+            this.container.style.display = 'none';
         }
 
         this.lastData = update;

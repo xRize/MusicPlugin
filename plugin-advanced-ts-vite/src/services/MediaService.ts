@@ -127,6 +127,10 @@ export class MediaService {
         this.listeners.push(callback);
     }
 
+    public unsubscribe(callback: (update: MediaUpdate) => void) {
+        this.listeners = this.listeners.filter(cb => cb !== callback);
+    }
+
     public sendCommand(command: string) {
         if (this.socket && this.socket.readyState === WebSocket.OPEN) {
             this.socket.send(JSON.stringify({ type: 'command', command }));

@@ -34,6 +34,8 @@
     opacity: 0;
     transform: translateY(20px) scale(0.95);
     pointer-events: none;
+    visibility: hidden;
+    transition: opacity 0.5s ease, transform 0.5s ease, visibility 0.5s;
 }
 
 .media-widget.paused {
@@ -117,6 +119,38 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+}
+
+.close-btn {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    width: 20px;
+    height: 20px;
+    background: #1a1a1a;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 50%;
+    color: #ffffff;
+    font-size: 16px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: all 0.2s ease;
+    z-index: 10001;
+    padding: 0;
+    line-height: 1;
+}
+
+.media-widget:hover .close-btn {
+    opacity: 1;
+}
+
+.close-btn:hover {
+    background: #e81123;
+    border-color: #e81123;
+    transform: scale(1.1);
 }
 
 /* Add a subtle "playing" pulse to the accent color if you want */
